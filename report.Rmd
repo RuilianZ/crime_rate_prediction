@@ -1,0 +1,13 @@
+---
+title: "Crime Rate Prediction"
+output: pdf_document
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+cdi_df =read_csv("data/cdi.csv")
+```
+
