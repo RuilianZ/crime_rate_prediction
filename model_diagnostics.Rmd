@@ -1,0 +1,30 @@
+---
+title: "model_diagnostics"
+author: "Yida Wang"
+date: "12/12/2021"
+output: html_document
+---
+
+```{r setup}
+library(tidyverse)
+library(readr)
+```
+
+## import data
+```{r}
+cdi = read_csv("./data/cdi.csv") %>%
+  janitor::clean_names() 
+
+cdi
+```
+
+## diagnostics
+residual vs fitted plot
+QQ plot
+Residual
+
+## Box-Cox transformation
+
+## outliers
+
+## colinearility
