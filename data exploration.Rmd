@@ -1,0 +1,102 @@
+---
+title: "data exploration"
+author: "XIAO MA"
+date: "12/12/2021"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(readr)
+library(ggplot2) 
+#install.packages("ggExtra")
+library(ggExtra)
+#install.packages("GGally")
+library(GGally) 
+```
+
+```{r}
+cdi = read_csv("./data/cdi.csv") %>%
+  janitor::clean_names() 
+
+cdi = cdi %>% 
+  mutate(crm_1000 = (crimes/pop)*1000)
+```
+
+## Pairwise
+```{r}
+ggpairs(cdi[,-c(1,2,3)])
+```
+From the pairwise plot, we observed the correlation and distribution between each two variables. Although the high absolute value of correlation indicate strong relatinship, it may not be lienarly relation. The association between crime rate to each variable was displayed in the last row. No strong linear relationship was detected between crime rate per 1000 person and other variables. 
+
+## Marginal 
+```{r}
+p = ggplot(cdi, aes(x=bagrad, y=crm_1000)) +
+      geom_point() +
+      theme(legend.position="none")
+p1 = ggMarginal(p, type = "density")
+p1
+```
+
+
+
+## Crime Rate Comparison Across Region
+```{r}
+#CRM_1000 vs. Geographic Region
+cdi_region = cdi %>%
+  group_by(region) %>%
+  summarise(region_crm_1000 = sum(crimes)*1000/sum(pop)) %>%
+  arrange(desc(region_crm_1000))
+
+cdi_region = cdi_region %>%
+  mutate(region_cla = case_when(
+  region == 1 ~ "Northeast",
+  region == 2 ~ "North Central",
+  region == 3 ~ "South",
+  region == 4 ~ "West")) %>% 
+  mutate(region_cla = as.factor(region_cla)) %>% 
+  arrange(region_cla,region_crm_1000)
+
+ggplot(cdi_region) + 
+  geom_bar(stat = "identity",aes( y = region_crm_1000,reorder(region_cla,+region_crm_1000)),fill = "darkblue",width = 0.3) +
+  labs(x = "Region", y = "Crime Rate",title = "The Crime Rate of Each Geographic Region") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+Southern US have highest crime rate. 
+
+## State crime( find the state with unusual crime rate)
+```{r}
+#CRM_1000 vs. state
+cdi_state = cdi %>%
+  group_by(state) %>%
+  summarise(state_crm_1000 = sum(crimes)*1000/sum(pop)) %>%
+  arrange(desc(state_crm_1000))
+
+theme_dotplot <- theme_bw(10) +
+    theme(axis.text.y = element_text(size = rel(0.75)),
+        axis.ticks.y = element_blank(),
+        axis.title.x = element_text(size = rel(0.75)),
+        panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_line(size = 0.5),
+        panel.grid.minor.x = element_blank())
+
+ggplot(cdi_state,aes(state_crm_1000,reorder(state,state_crm_1000))) +
+  geom_point(color = "blue") +
+  scale_x_continuous(limits = c(30, 110),breaks = seq(30,110,5)) + 
+  theme_dotplot +
+  labs(y = "State",title = 
+         "The Crime Rate with different States") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(cdi_state,aes(y = state_crm_1000)) + geom_boxplot()
+```
+According to the boxplot, there is no outliers, which means ther is no sates with unusual crime. rate.
+```{r}
+cdi_desc = cdi %>%
+  arrange(desc(crm_1000))
+head(cdi_desc)
+ggplot(cdi_desc,aes(y = crm_1000)) + geom_boxplot()
+```
+There are four county with unusual crime rate, and they are (Kings, NY), (123 St._Loui, MO),(70, Fulton, GA), (9 Dade, FL)
+
+
