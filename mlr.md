@@ -21,35 +21,42 @@ library(tidyverse)
 ``` r
 library(modelr)
 library(patchwork)
-cdi_data = read.csv("./data/cdi.csv")
+# library(GGally)
+
+cdi = read.csv("./data/cdi.csv")
 ```
 
 ### Multiple Linear Regression Model
 
 Next, we try to fit a multiple regression model over the variables, with
-the newly created variable CRM\_1000 as the outcome.
+the newly created variable crm\_1000 as the outcome.
 
 ``` r
-# Create a new variable called CRM_1000, which is the crime rate per 1000 population in each county in year 1990, and another variable pop_area which is the population density per square mile. Also change the number of doctors and beds into doctors and beds per 100 population.
+# Create a new variable called crm_1000, which is the crime rate per 1000 population in each county in year 1990, and another variable poparea which is the population density per square mile. Also change the number of doctors and beds into doctors and beds per 1000 population.
 
-cdi_data = 
-  cdi_data %>% 
+cdi = 
+  cdi %>% 
   mutate(
-    CRM_1000 = crimes/pop * 1000,
+    # crm_1000 is already generated in Xiao's part
+    crm_1000 = crimes/pop * 1000,
     poparea = pop/area,
-    docs = docs/pop * 100,
-    beds = beds/pop * 100,
+    docs = docs/pop * 1000,
+    beds = beds/pop * 1000,
     region = as.factor(region)
   ) %>% 
   select(-id,-cty,-state,-crimes)
+```
 
+From the pairwise plot,
+
+``` r
 # Use step-wise regression to try to find an initial mlr model
-mult.fit = lm(CRM_1000 ~ ., data = cdi_data)
+mult.fit = lm(crm_1000 ~ ., data = cdi)
 step(mult.fit, direction = "backward")
 ```
 
     ## Start:  AIC=2515.41
-    ## CRM_1000 ~ area + pop + pop18 + pop65 + docs + beds + hsgrad + 
+    ## crm_1000 ~ area + pop + pop18 + pop65 + docs + beds + hsgrad + 
     ##     bagrad + poverty + unemp + pcincome + totalinc + region + 
     ##     poparea
     ## 
@@ -71,7 +78,7 @@ step(mult.fit, direction = "backward")
     ## - region    3     37378 161168 2625.5
     ## 
     ## Step:  AIC=2513.45
-    ## CRM_1000 ~ area + pop + pop18 + docs + beds + hsgrad + bagrad + 
+    ## crm_1000 ~ area + pop + pop18 + docs + beds + hsgrad + bagrad + 
     ##     poverty + unemp + pcincome + totalinc + region + poparea
     ## 
     ##            Df Sum of Sq    RSS    AIC
@@ -91,7 +98,7 @@ step(mult.fit, direction = "backward")
     ## - region    3     37399 161200 2623.6
     ## 
     ## Step:  AIC=2511.63
-    ## CRM_1000 ~ area + pop + pop18 + beds + hsgrad + bagrad + poverty + 
+    ## crm_1000 ~ area + pop + pop18 + beds + hsgrad + bagrad + poverty + 
     ##     unemp + pcincome + totalinc + region + poparea
     ## 
     ##            Df Sum of Sq    RSS    AIC
@@ -110,7 +117,7 @@ step(mult.fit, direction = "backward")
     ## - region    3     37348 161201 2621.6
     ## 
     ## Step:  AIC=2509.89
-    ## CRM_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + unemp + 
+    ## crm_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + unemp + 
     ##     pcincome + totalinc + region + poparea
     ## 
     ##            Df Sum of Sq    RSS    AIC
@@ -128,7 +135,7 @@ step(mult.fit, direction = "backward")
     ## - region    3     37292 161217 2619.6
     ## 
     ## Step:  AIC=2508.58
-    ## CRM_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + 
+    ## crm_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + 
     ##     totalinc + region + poparea
     ## 
     ##            Df Sum of Sq    RSS    AIC
@@ -146,26 +153,26 @@ step(mult.fit, direction = "backward")
 
     ## 
     ## Call:
-    ## lm(formula = CRM_1000 ~ pop + pop18 + beds + hsgrad + bagrad + 
-    ##     poverty + pcincome + totalinc + region + poparea, data = cdi_data)
+    ## lm(formula = crm_1000 ~ pop + pop18 + beds + hsgrad + bagrad + 
+    ##     poverty + pcincome + totalinc + region + poparea, data = cdi)
     ## 
     ## Coefficients:
     ## (Intercept)          pop        pop18         beds       hsgrad       bagrad  
-    ##  -9.164e+01    8.049e-05    8.877e-01    2.376e+01    4.860e-01   -6.182e-01  
+    ##  -9.164e+01    8.049e-05    8.877e-01    2.376e+00    4.860e-01   -6.182e-01  
     ##     poverty     pcincome     totalinc      region2      region3      region4  
     ##   2.065e+00    2.717e-03   -3.646e-03    9.213e+00    2.674e+01    2.052e+01  
     ##     poparea  
     ##   4.240e-03
 
 According the above results of step-wise regression in R, the predicting
-model of `CRM_1000` contains the continuous predictors `pop`, `pop18`,
+model of `crm_1000` contains the continuous predictors `pop`, `pop18`,
 `beds`, `hsgrad`, `bagrad`, `poverty`, `pcincome`, `totalinc`, `poparea`
 and the categorical predictor `region`.
 
 Then we get the multiple linear regression model for crime rates:
 
 ``` r
-model1 = lm(CRM_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = cdi_data)
+model1 = lm(crm_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = cdi)
 
 broom::tidy(model1) %>% 
   knitr::kable()
@@ -176,7 +183,7 @@ broom::tidy(model1) %>%
 | (Intercept) | -91.6353305 | 23.7812999 | -3.853251 | 0.0001345 |
 | pop         |   0.0000805 |  0.0000122 |  6.609150 | 0.0000000 |
 | pop18       |   0.8877337 |  0.2731604 |  3.249862 | 0.0012460 |
-| beds        |  23.7585223 |  4.8106863 |  4.938697 | 0.0000011 |
+| beds        |   2.3758522 |  0.4810686 |  4.938697 | 0.0000011 |
 | hsgrad      |   0.4860489 |  0.2522149 |  1.927122 | 0.0546275 |
 | bagrad      |  -0.6181563 |  0.2699901 | -2.289552 | 0.0225344 |
 | poverty     |   2.0645606 |  0.3449861 |  5.984475 | 0.0000000 |
@@ -190,7 +197,7 @@ broom::tidy(model1) %>%
 Now let’s look at the Fitted values and the residuals
 
 ``` r
-cdi_data %>% 
+cdi %>% 
   add_predictions(model1) %>% 
   add_residuals(model1) %>% 
   ggplot(aes(x = pred, y = resid)) +
@@ -203,7 +210,7 @@ cdi_data %>%
 
     ## `geom_smooth()` using formula 'y ~ x'
 
-![](mlr_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+![](mlr_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
 As we can see from the plot, most of the residuals are distributed
 symmetrically and around y = 0. However, there are some outliers when
@@ -217,7 +224,7 @@ resources, educational level, poverty, unemployment rate, personal
 income and population density per square mile.
 
 ``` r
-model2 = lm(CRM_1000 ~ pop18 + beds + hsgrad + poverty + unemp + pcincome + poparea, data = cdi_data)
+model2 = lm(crm_1000 ~ pop18 + beds + hsgrad + poverty + unemp + pcincome + poparea, data = cdi)
 
 broom::tidy(model2) %>% 
   knitr::kable()
@@ -227,7 +234,7 @@ broom::tidy(model2) %>%
 |:------------|------------:|-----------:|----------:|----------:|
 | (Intercept) | -22.6348024 | 20.6352727 | -1.096899 | 0.2732968 |
 | pop18       |   0.5136253 |  0.2615950 |  1.963437 | 0.0502364 |
-| beds        |  13.9597221 |  5.6176993 |  2.484954 | 0.0133344 |
+| beds        |   1.3959722 |  0.5617699 |  2.484954 | 0.0133344 |
 | hsgrad      |   0.3162693 |  0.2310961 |  1.368562 | 0.1718476 |
 | poverty     |   3.1510026 |  0.3572178 |  8.820955 | 0.0000000 |
 | unemp       |  -1.1140543 |  0.5478396 | -2.033541 | 0.0426086 |
@@ -238,7 +245,7 @@ However, the terms `hsgrad` and `pcincome` are not significant, we try
 to remove these predictors and fit another mlr model.
 
 ``` r
-model3 = lm(CRM_1000 ~ pop18 + beds + poverty + unemp + poparea, data = cdi_data)
+model3 = lm(crm_1000 ~ pop18 + beds + poverty + unemp + poparea, data = cdi)
 
 broom::tidy(model3) %>% 
   knitr::kable()
@@ -248,7 +255,7 @@ broom::tidy(model3) %>%
 |:------------|-----------:|----------:|----------:|----------:|
 | (Intercept) | 18.2845448 | 8.7188833 |  2.097120 | 0.0365610 |
 | pop18       |  0.5778918 | 0.2495846 |  2.315415 | 0.0210557 |
-| beds        | 15.3671503 | 5.5653455 |  2.761221 | 0.0060028 |
+| beds        |  1.5367150 | 0.5565345 |  2.761221 | 0.0060028 |
 | poverty     |  2.5308351 | 0.2653643 |  9.537212 | 0.0000000 |
 | unemp       | -1.4474848 | 0.5123305 | -2.825295 | 0.0049416 |
 | poparea     |  0.0049101 | 0.0004595 | 10.684856 | 0.0000000 |
@@ -257,7 +264,7 @@ Draw the residual plots for model2 and model3:
 
 ``` r
 res2 = 
-  cdi_data %>% 
+  cdi %>% 
   add_predictions(model2) %>% 
   add_residuals(model2) %>% 
   ggplot(aes(x = pred, y = resid)) +
@@ -268,7 +275,7 @@ res2 =
        y = "Residual")
 
 res3 = 
-  cdi_data %>% 
+  cdi %>% 
   add_predictions(model3) %>% 
   add_residuals(model3) %>% 
   ggplot(aes(x = pred, y = resid)) +
@@ -284,7 +291,7 @@ res2 + res3
     ## `geom_smooth()` using formula 'y ~ x'
     ## `geom_smooth()` using formula 'y ~ x'
 
-![](mlr_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+![](mlr_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
 By the residual plot for the above two models, we cannot see a big
 difference.
@@ -292,15 +299,15 @@ difference.
 So we try to compare the three models by ploting their RMSE values.
 
 ``` r
-cv = crossv_mc(cdi_data, 100) %>% 
+cv = crossv_mc(cdi, 100) %>% 
     mutate(
     train = map(train, as_tibble),
     test = map(test, as_tibble)
   ) %>% 
   mutate(
-    model_1 = map(train, ~lm(CRM_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = cdi_data)),
-    model_2 = map(train, ~lm(CRM_1000 ~ pop18 + beds + hsgrad + poverty + unemp + pcincome + poparea, data = cdi_data)),
-    model_3 = map(train, ~lm(CRM_1000 ~ pop18 + beds + poverty + unemp + poparea, data = cdi_data))) %>% 
+    model_1 = map(train, ~lm(crm_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = cdi)),
+    model_2 = map(train, ~lm(crm_1000 ~ pop18 + beds + hsgrad + poverty + unemp + pcincome + poparea, data = cdi)),
+    model_3 = map(train, ~lm(crm_1000 ~ pop18 + beds + poverty + unemp + poparea, data = cdi))) %>% 
   mutate(
     rmse_model1 = map2_dbl(model_1, test, ~rmse(model = .x, data = .y)),
     rmse_model2 = map2_dbl(model_2, test, ~rmse(model = .x, data = .y)),
@@ -319,7 +326,7 @@ cv %>%
   geom_boxplot(alpha = 0.5, color = "red") 
 ```
 
-![](mlr_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+![](mlr_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 The model1, which is the initial step-wise regression model is more
 optimal than the other two models.

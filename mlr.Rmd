@@ -9,36 +9,43 @@ output: github_document
 library(tidyverse)
 library(modelr)
 library(patchwork)
-cdi_data = read.csv("./data/cdi.csv")
+# library(GGally)
+
+cdi = read.csv("./data/cdi.csv")
 ```
 
 ### Multiple Linear Regression Model
 
-Next, we try to fit a multiple regression model over the variables, with the newly created variable CRM_1000 as the outcome.
+Next, we try to fit a multiple regression model over the variables, with the newly created variable crm_1000 as the outcome.
 ```{r}
-# Create a new variable called CRM_1000, which is the crime rate per 1000 population in each county in year 1990, and another variable pop_area which is the population density per square mile. Also change the number of doctors and beds into doctors and beds per 100 population.
+# Create a new variable called crm_1000, which is the crime rate per 1000 population in each county in year 1990, and another variable poparea which is the population density per square mile. Also change the number of doctors and beds into doctors and beds per 1000 population.
 
-cdi_data = 
-  cdi_data %>% 
+cdi = 
+  cdi %>% 
   mutate(
-    CRM_1000 = crimes/pop * 1000,
+    # crm_1000 is already generated in Xiao's part
+    crm_1000 = crimes/pop * 1000,
     poparea = pop/area,
-    docs = docs/pop * 100,
-    beds = beds/pop * 100,
+    docs = docs/pop * 1000,
+    beds = beds/pop * 1000,
     region = as.factor(region)
   ) %>% 
   select(-id,-cty,-state,-crimes)
+```
 
+From the pairwise plot, 
+
+```{r}
 # Use step-wise regression to try to find an initial mlr model
-mult.fit = lm(CRM_1000 ~ ., data = cdi_data)
+mult.fit = lm(crm_1000 ~ ., data = cdi)
 step(mult.fit, direction = "backward")
 ```
 
-According the above results of step-wise regression in R, the predicting model of `CRM_1000` contains the continuous predictors `pop`, `pop18`, `beds`, `hsgrad`, `bagrad`, `poverty`, `pcincome`, `totalinc`, `poparea` and the categorical predictor `region`.
+According the above results of step-wise regression in R, the predicting model of `crm_1000` contains the continuous predictors `pop`, `pop18`, `beds`, `hsgrad`, `bagrad`, `poverty`, `pcincome`, `totalinc`, `poparea` and the categorical predictor `region`.
 
 Then we get the multiple linear regression model for crime rates:
 ```{r}
-model1 = lm(CRM_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = cdi_data)
+model1 = lm(crm_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = cdi)
 
 broom::tidy(model1) %>% 
   knitr::kable()
@@ -46,7 +53,7 @@ broom::tidy(model1) %>%
 
 Now let's look at the Fitted values and the residuals
 ```{r}
-cdi_data %>% 
+cdi %>% 
   add_predictions(model1) %>% 
   add_residuals(model1) %>% 
   ggplot(aes(x = pred, y = resid)) +
@@ -62,7 +69,7 @@ As we can see from the plot, most of the residuals are distributed symmetrically
 In addition, since step-wise regression does not really have a good reputation, we can try to find other models based on the searching results of the potentially related factors of crime rates: age, medical resources, educational level, poverty, unemployment rate, personal income and population density per square mile.
 
 ```{r}
-model2 = lm(CRM_1000 ~ pop18 + beds + hsgrad + poverty + unemp + pcincome + poparea, data = cdi_data)
+model2 = lm(crm_1000 ~ pop18 + beds + hsgrad + poverty + unemp + pcincome + poparea, data = cdi)
 
 broom::tidy(model2) %>% 
   knitr::kable()
@@ -71,7 +78,7 @@ broom::tidy(model2) %>%
 However, the terms `hsgrad` and `pcincome` are not significant, we try to remove these predictors and fit another mlr model.
 
 ```{r}
-model3 = lm(CRM_1000 ~ pop18 + beds + poverty + unemp + poparea, data = cdi_data)
+model3 = lm(crm_1000 ~ pop18 + beds + poverty + unemp + poparea, data = cdi)
 
 broom::tidy(model3) %>% 
   knitr::kable()
@@ -80,7 +87,7 @@ broom::tidy(model3) %>%
 Draw the residual plots for model2 and model3:
 ```{r}
 res2 = 
-  cdi_data %>% 
+  cdi %>% 
   add_predictions(model2) %>% 
   add_residuals(model2) %>% 
   ggplot(aes(x = pred, y = resid)) +
@@ -91,7 +98,7 @@ res2 =
        y = "Residual")
 
 res3 = 
-  cdi_data %>% 
+  cdi %>% 
   add_predictions(model3) %>% 
   add_residuals(model3) %>% 
   ggplot(aes(x = pred, y = resid)) +
@@ -108,15 +115,15 @@ By the residual plot for the above two models, we cannot see a big difference.
 
 So we try to compare the three models by ploting their RMSE values.
 ```{r}
-cv = crossv_mc(cdi_data, 100) %>% 
+cv = crossv_mc(cdi, 100) %>% 
     mutate(
     train = map(train, as_tibble),
     test = map(test, as_tibble)
   ) %>% 
   mutate(
-    model_1 = map(train, ~lm(CRM_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = cdi_data)),
-    model_2 = map(train, ~lm(CRM_1000 ~ pop18 + beds + hsgrad + poverty + unemp + pcincome + poparea, data = cdi_data)),
-    model_3 = map(train, ~lm(CRM_1000 ~ pop18 + beds + poverty + unemp + poparea, data = cdi_data))) %>% 
+    model_1 = map(train, ~lm(crm_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = cdi)),
+    model_2 = map(train, ~lm(crm_1000 ~ pop18 + beds + hsgrad + poverty + unemp + pcincome + poparea, data = cdi)),
+    model_3 = map(train, ~lm(crm_1000 ~ pop18 + beds + poverty + unemp + poparea, data = cdi))) %>% 
   mutate(
     rmse_model1 = map2_dbl(model_1, test, ~rmse(model = .x, data = .y)),
     rmse_model2 = map2_dbl(model_2, test, ~rmse(model = .x, data = .y)),
