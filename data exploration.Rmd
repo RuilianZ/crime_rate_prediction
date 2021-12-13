@@ -47,64 +47,55 @@ ggpairs(cdi[,-c(1,2,3,10)])
 
 From the pairwise plot, we observed the correlation and distribution between every two variables. The association between crime rate to each variable was displayed in the last row. No strong linear relationship was detected between the crime rate per 1000 person and other variables. Between variables, we noticed that Percent of population aged 18-34 have negative relation with Percent of population aged 65+. Although the high absolute value of correlation indicates a strong relationship, it may not be linear relation.
 
-## Marginal 
+## Take a look of variables with high correlations
 ```{r}
-p = ggplot(cdi, aes(x=pop, y=crimes)) +
+totalinc_pop = ggplot(cdi, aes(x = totalinc, y = pop)) +
       geom_point() +
-      theme(legend.position="none")
-p1 = ggMarginal(p, type = "density")
-p1
+      theme(legend.position = "none")
+ggMarginal(totalinc_pop, type = "density")
 
-p2 = ggplot(cdi, aes(x=totalinc, y = pop)) +
-      geom_point() +
-      theme(legend.position="none")
-p2 = ggMarginal(p2, type = "density")
-p2
 
 #not ob linear
-p3 = ggplot(cdi, aes(x = pop18, y = pop65)) + geom_point() +
-      theme(legend.position="none")
-p3 = ggMarginal(p3, type = "density")
-p3
+pop18_pop65 = ggplot(cdi, aes(x = pop18, y = pop65)) + geom_point() +
+      theme(legend.position = "none")
+ggMarginal(pop18_pop65, type = "density")
 
 #not ob linear
-p4 = ggplot(cdi, aes(x = hsgrad, y = bagrad)) + geom_point() +
-      theme(legend.position="none")
-p4 = ggMarginal(p4, type = "density")
-p4
-
-
-p5 = ggplot(cdi, aes(x = hsgrad, y = poverty)) + geom_point() +
-      theme(legend.position="none")
-p5 = ggMarginal(p5, type = "density")
-p5
+hsgrad_bagrad = ggplot(cdi, aes(x = hsgrad, y = bagrad)) + geom_point() +
+      theme(legend.position = "none")
+ggMarginal(hsgrad_bagrad , type = "density")
 
 
 
-p6 = ggplot(cdi, aes(x = hsgrad, y = unemp)) + geom_point() +
-      theme(legend.position="none")
-p6 = ggMarginal(p6, type = "density")
-p6
+hsgrad_poverty = ggplot(cdi, aes(x = hsgrad, y = poverty)) + geom_point() +
+      theme(legend.position = "none")
+ggMarginal(hsgrad_poverty, type = "density")
 
-p7 = ggplot(cdi, aes(x = hsgrad, y = pcincome)) + geom_point() +
-      theme(legend.position="none")
-p7 = ggMarginal(p7, type = "density")
-p7
 
-p8 = ggplot(cdi, aes(x = bagrad, y = pcincome)) + geom_point() +
-      theme(legend.position="none")
-p8 = ggMarginal(p8, type = "density")
-p8
 
-p9 = ggplot(cdi, aes(x = bagrad, y = unemp)) + geom_point() +
-      theme(legend.position="none")
-p9 = ggMarginal(p9, type = "density")
-p9
+hsgrad_unemp = ggplot(cdi, aes(x = hsgrad, y = unemp)) + geom_point() +
+      theme(legend.position = "none")
+ggMarginal(hsgrad_unemp , type = "density")
 
-p10 = ggplot(cdi, aes(x = bagrad, y = poverty)) + geom_point() +
-      theme(legend.position="none")
-p10 = ggMarginal(p10, type = "density")
-p10
+
+hsgrad_pcincome = ggplot(cdi, aes(x = hsgrad, y = pcincome)) + geom_point() +
+      theme(legend.position = "none")
+ggMarginal(hsgrad_pcincome, type = "density")
+
+bagrad_pcincome = ggplot(cdi, aes(x = bagrad, y = pcincome)) + geom_point() +
+      theme(legend.position = "none")
+ggMarginal(bagrad_pcincome, type = "density")
+
+
+bagrad_unemp = ggplot(cdi, aes(x = bagrad, y = unemp)) + geom_point() +
+      theme(legend.position = "none")
+ggMarginal(bagrad_unemp, type = "density")
+
+
+bagrad_poverty = ggplot(cdi, aes(x = bagrad, y = poverty)) + geom_point() +
+      theme(legend.position = "none")
+ggMarginal(bagrad_poverty, type = "density")
+
 
 ```
 
