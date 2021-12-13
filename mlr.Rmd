@@ -1,0 +1,139 @@
+---
+title: "mlr"
+author: "Hao Zheng"
+date: "12/12/2021"
+output: github_document
+---
+
+```{r}
+library(tidyverse)
+library(modelr)
+library(patchwork)
+cdi_data = read.csv("./data/cdi.csv")
+```
+
+### Multiple Linear Regression Model
+
+Next, we try to fit a multiple regression model over the variables, with the newly created variable CRM_1000 as the outcome.
+```{r}
+# Create a new variable called CRM_1000, which is the crime rate per 1000 population in each county in year 1990, and another variable pop_area which is the population density per square mile. Also change the number of doctors and beds into doctors and beds per 100 population.
+
+cdi_data = 
+  cdi_data %>% 
+  mutate(
+    CRM_1000 = crimes/pop * 1000,
+    poparea = pop/area,
+    docs = docs/pop * 100,
+    beds = beds/pop * 100,
+    region = as.factor(region)
+  ) %>% 
+  select(-id,-cty,-state,-crimes)
+
+# Use step-wise regression to try to find an initial mlr model
+mult.fit = lm(CRM_1000 ~ ., data = cdi_data)
+step(mult.fit, direction = "backward")
+```
+
+According the above results of step-wise regression in R, the predicting model of `CRM_1000` contains the continuous predictors `pop`, `pop18`, `beds`, `hsgrad`, `bagrad`, `poverty`, `pcincome`, `totalinc`, `poparea` and the categorical predictor `region`.
+
+Then we get the multiple linear regression model for crime rates:
+```{r}
+model1 = lm(CRM_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = cdi_data)
+
+broom::tidy(model1) %>% 
+  knitr::kable()
+```
+
+Now let's look at the Fitted values and the residuals
+```{r}
+cdi_data %>% 
+  add_predictions(model1) %>% 
+  add_residuals(model1) %>% 
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point(alpha = 0.4) + 
+  geom_smooth(se = F, color = "red", method = "lm") +
+  labs(title = "Risidual Plot",
+       x = "Fitted Value", 
+       y = "Residual")
+```
+
+As we can see from the plot, most of the residuals are distributed symmetrically and around y = 0. However, there are some outliers when the fitted value is large. But the model is still not very good at predicting.
+
+In addition, since step-wise regression does not really have a good reputation, we can try to find other models based on the searching results of the potentially related factors of crime rates: age, medical resources, educational level, poverty, unemployment rate, personal income and population density per square mile.
+
+```{r}
+model2 = lm(CRM_1000 ~ pop18 + beds + hsgrad + poverty + unemp + pcincome + poparea, data = cdi_data)
+
+broom::tidy(model2) %>% 
+  knitr::kable()
+```
+
+However, the terms `hsgrad` and `pcincome` are not significant, we try to remove these predictors and fit another mlr model.
+
+```{r}
+model3 = lm(CRM_1000 ~ pop18 + beds + poverty + unemp + poparea, data = cdi_data)
+
+broom::tidy(model3) %>% 
+  knitr::kable()
+```
+
+Draw the residual plots for model2 and model3:
+```{r}
+res2 = 
+  cdi_data %>% 
+  add_predictions(model2) %>% 
+  add_residuals(model2) %>% 
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point(alpha = 0.4) + 
+  geom_smooth(se = F, color = "red", method = "lm") +
+  labs(title = "Risidual Plot for model 2",
+       x = "Fitted Value", 
+       y = "Residual")
+
+res3 = 
+  cdi_data %>% 
+  add_predictions(model3) %>% 
+  add_residuals(model3) %>% 
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point(alpha = 0.4) + 
+  geom_smooth(se = F, color = "red", method = "lm") +
+  labs(title = "Risidual Plot for model 3",
+       x = "Fitted Value", 
+       y = "Residual")
+
+res2 + res3
+```
+
+By the residual plot for the above two models, we cannot see a big difference.
+
+So we try to compare the three models by ploting their RMSE values.
+```{r}
+cv = crossv_mc(cdi_data, 100) %>% 
+    mutate(
+    train = map(train, as_tibble),
+    test = map(test, as_tibble)
+  ) %>% 
+  mutate(
+    model_1 = map(train, ~lm(CRM_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = cdi_data)),
+    model_2 = map(train, ~lm(CRM_1000 ~ pop18 + beds + hsgrad + poverty + unemp + pcincome + poparea, data = cdi_data)),
+    model_3 = map(train, ~lm(CRM_1000 ~ pop18 + beds + poverty + unemp + poparea, data = cdi_data))) %>% 
+  mutate(
+    rmse_model1 = map2_dbl(model_1, test, ~rmse(model = .x, data = .y)),
+    rmse_model2 = map2_dbl(model_2, test, ~rmse(model = .x, data = .y)),
+    rmse_model3 = map2_dbl(model_3, test, ~rmse(model = .x, data = .y))
+    )
+
+cv %>% 
+  select(starts_with("rmse")) %>% 
+  pivot_longer(
+    everything(),
+    names_to = "model",
+    values_to = "rmse",
+    names_prefix = "rmse_" 
+  ) %>% 
+  ggplot(aes(x = model, y = rmse)) +  geom_violin(fill = "orange",alpha = 0.4) +
+  geom_boxplot(alpha = 0.5, color = "red") 
+
+```
+
+The model1, which is the initial step-wise regression model is more optimal than the other two models.
