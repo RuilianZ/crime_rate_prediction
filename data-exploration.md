@@ -12,14 +12,14 @@ cdi = read_csv("./data/cdi.csv") %>%
 
     ## Rows: 440 Columns: 17
 
-    ## ── Column specification ────────────────────────────────────────────────────────
+    ## -- Column specification --------------------------------------------------------
     ## Delimiter: ","
     ## chr  (2): cty, state
     ## dbl (15): id, area, pop, pop18, pop65, docs, beds, crimes, hsgrad, bagrad, p...
 
     ## 
-    ## ℹ Use `spec()` to retrieve the full column specification for this data.
-    ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+    ## i Use `spec()` to retrieve the full column specification for this data.
+    ## i Specify the column types or set `show_col_types = FALSE` to quiet this message.
 
 ``` r
 # Create a new variable called crm_1000, which is the crime rate per 1000 population in each county in year 1990, and another variable poparea which is the population density per square mile. Also change the number of doctors and beds into doctors and beds per 1000 population.
@@ -41,25 +41,25 @@ glimpse(cdi)
 
     ## Rows: 440
     ## Columns: 19
-    ## $ id       <dbl> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18…
-    ## $ cty      <chr> "Los_Ange", "Cook", "Harris", "San_Dieg", "Orange", "Kings", …
-    ## $ state    <chr> "CA", "IL", "TX", "CA", "CA", "NY", "AZ", "MI", "FL", "TX", "…
-    ## $ area     <dbl> 4060, 946, 1729, 4205, 790, 71, 9204, 614, 1945, 880, 135, 21…
-    ## $ pop      <dbl> 8863164, 5105067, 2818199, 2498016, 2410556, 2300664, 2122101…
-    ## $ pop18    <dbl> 32.1, 29.2, 31.3, 33.5, 32.6, 28.3, 29.2, 27.4, 27.1, 32.6, 2…
-    ## $ pop65    <dbl> 9.7, 12.4, 7.1, 10.9, 9.2, 12.4, 12.5, 12.5, 13.9, 8.2, 15.2,…
-    ## $ docs     <dbl> 2.671394, 2.968227, 2.680080, 2.363876, 2.514773, 2.112868, 2…
-    ## $ beds     <dbl> 3.125295, 4.221296, 4.417360, 2.473563, 2.642129, 3.886704, 2…
-    ## $ crimes   <dbl> 688936, 436936, 253526, 173821, 144524, 680966, 177593, 19397…
-    ## $ hsgrad   <dbl> 70.0, 73.4, 74.9, 81.9, 81.2, 63.7, 81.5, 70.0, 65.0, 77.1, 6…
-    ## $ bagrad   <dbl> 22.3, 22.8, 25.4, 25.3, 27.8, 16.6, 22.1, 13.7, 18.8, 26.3, 1…
-    ## $ poverty  <dbl> 11.6, 11.1, 12.5, 8.1, 5.2, 19.5, 8.8, 16.9, 14.2, 10.4, 16.1…
-    ## $ unemp    <dbl> 8.0, 7.2, 5.7, 6.1, 4.8, 9.5, 4.9, 10.0, 8.7, 6.1, 8.0, 4.6, …
-    ## $ pcincome <dbl> 20786, 21729, 19517, 19588, 24400, 16803, 18042, 17461, 17823…
-    ## $ totalinc <dbl> 184230, 110928, 55003, 48931, 58818, 38658, 38287, 36872, 345…
-    ## $ region   <dbl> 4, 2, 3, 4, 4, 1, 4, 2, 3, 3, 1, 4, 4, 4, 2, 1, 1, 1, 1, 4, 3…
-    ## $ poparea  <dbl> 2183.04532, 5396.47674, 1629.95894, 594.05850, 3051.33671, 32…
-    ## $ crm_1000 <dbl> 77.73026, 85.58869, 89.96029, 69.58362, 59.95463, 295.98672, …
+    ## $ id       <dbl> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18~
+    ## $ cty      <chr> "Los_Ange", "Cook", "Harris", "San_Dieg", "Orange", "Kings", ~
+    ## $ state    <chr> "CA", "IL", "TX", "CA", "CA", "NY", "AZ", "MI", "FL", "TX", "~
+    ## $ area     <dbl> 4060, 946, 1729, 4205, 790, 71, 9204, 614, 1945, 880, 135, 21~
+    ## $ pop      <dbl> 8863164, 5105067, 2818199, 2498016, 2410556, 2300664, 2122101~
+    ## $ pop18    <dbl> 32.1, 29.2, 31.3, 33.5, 32.6, 28.3, 29.2, 27.4, 27.1, 32.6, 2~
+    ## $ pop65    <dbl> 9.7, 12.4, 7.1, 10.9, 9.2, 12.4, 12.5, 12.5, 13.9, 8.2, 15.2,~
+    ## $ docs     <dbl> 2.671394, 2.968227, 2.680080, 2.363876, 2.514773, 2.112868, 2~
+    ## $ beds     <dbl> 3.125295, 4.221296, 4.417360, 2.473563, 2.642129, 3.886704, 2~
+    ## $ crimes   <dbl> 688936, 436936, 253526, 173821, 144524, 680966, 177593, 19397~
+    ## $ hsgrad   <dbl> 70.0, 73.4, 74.9, 81.9, 81.2, 63.7, 81.5, 70.0, 65.0, 77.1, 6~
+    ## $ bagrad   <dbl> 22.3, 22.8, 25.4, 25.3, 27.8, 16.6, 22.1, 13.7, 18.8, 26.3, 1~
+    ## $ poverty  <dbl> 11.6, 11.1, 12.5, 8.1, 5.2, 19.5, 8.8, 16.9, 14.2, 10.4, 16.1~
+    ## $ unemp    <dbl> 8.0, 7.2, 5.7, 6.1, 4.8, 9.5, 4.9, 10.0, 8.7, 6.1, 8.0, 4.6, ~
+    ## $ pcincome <dbl> 20786, 21729, 19517, 19588, 24400, 16803, 18042, 17461, 17823~
+    ## $ totalinc <dbl> 184230, 110928, 55003, 48931, 58818, 38658, 38287, 36872, 345~
+    ## $ region   <dbl> 4, 2, 3, 4, 4, 1, 4, 2, 3, 3, 1, 4, 4, 4, 2, 1, 1, 1, 1, 4, 3~
+    ## $ poparea  <dbl> 2183.04532, 5396.47674, 1629.95894, 594.05850, 3051.33671, 32~
+    ## $ crm_1000 <dbl> 77.73026, 85.58869, 89.96029, 69.58362, 59.95463, 295.98672, ~
 
 ``` r
 summary(cdi)
@@ -242,7 +242,7 @@ cdi_desc = cdi %>%
 head(cdi_desc)
 ```
 
-    ## # A tibble: 6 × 19
+    ## # A tibble: 6 x 19
     ##      id cty      state  area     pop pop18 pop65  docs  beds crimes hsgrad bagrad
     ##   <dbl> <chr>    <chr> <dbl>   <dbl> <dbl> <dbl> <dbl> <dbl>  <dbl>  <dbl>  <dbl>
     ## 1     6 Kings    NY       71 2300664  28.3  12.4  2.11  3.89 680966   63.7   16.6
@@ -251,7 +251,7 @@ head(cdi_desc)
     ## 4     9 Dade     FL     1945 1937094  27.1  13.9  3.24  4.56 244725   65     18.8
     ## 5   374 Ector    TX      901  118934  27.1   9.3  1.29  3.27  14643   66.9   11.4
     ## 6   239 Leon     FL      667  192493  38.5   8.2  2.15  4.28  23363   84.9   37.1
-    ## # … with 7 more variables: poverty <dbl>, unemp <dbl>, pcincome <dbl>,
+    ## # ... with 7 more variables: poverty <dbl>, unemp <dbl>, pcincome <dbl>,
     ## #   totalinc <dbl>, region <dbl>, poparea <dbl>, crm_1000 <dbl>
 
 ``` r
