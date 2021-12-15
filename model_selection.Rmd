@@ -1,7 +1,7 @@
 ---
 title: "Model Selection"
 author: "Peilin Zhou"
-output: html_document
+output: github_document
 ---
 
 ```{r}
