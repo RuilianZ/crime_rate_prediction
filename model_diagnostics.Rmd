@@ -2,7 +2,7 @@
 title: "model_diagnostics"
 author: "Yida Wang"
 date: "12/12/2021"
-output: html_document
+output: github_document
 ---
 
 ```{r}
@@ -201,9 +201,9 @@ cv = crossv_mc(cdi, 100) %>%
     model_4 = map(train, ~lm(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region + poparea*region + poparea*poverty + poparea*beds, data = cdi)),
     model_7 = map(train, ~lm(crm_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = cdi))) %>% 
   mutate(
-    rmse_model3 = map2_dbl(model_3, test, ~rmse(model = .x, data = .y)),
-    rmse_model4 = map2_dbl(model_4, test, ~rmse(model = .x, data = .y)),
-    rmse_model7 = map2_dbl(model_7, test, ~rmse(model = .x, data = .y))
+    rmse_model3 = map2_dbl(model_3, test, ~rmse(model = .x)),
+    rmse_model4 = map2_dbl(model_4, test, ~rmse(model = .x)),
+    rmse_model7 = map2_dbl(model_7, test, ~rmse(model = .x))
     )
 
 cv %>% 
@@ -312,7 +312,7 @@ summary(old3); summary(new3)
 for model 4
 ```{r}
 old4 = lm(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region + poparea*region + poparea*poverty + poparea*beds, data = cdi)
-old4 = lm(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region + poparea*region + poparea*poverty + poparea*beds, data = sum_cdi_df)
+new4 = lm(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region + poparea*region + poparea*poverty + poparea*beds, data = sum_cdi_df)
 summary(old4); summary(new4)
 
 ```
@@ -346,7 +346,7 @@ cdi %>%
   dplyr::select(-crm_1000) %>% 
   mutate(
     region = factor(region)) %>%
-  ggcorr(label = TRUE, label_size = 2, hjust = 0.8)
+  GGally::ggcorr(label = TRUE, label_size = 2, hjust = 0.8)
 ```
 pop and totalinc(1)
 pcincome and bagrad(0.7)
