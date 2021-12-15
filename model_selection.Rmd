@@ -7,7 +7,6 @@ output: html_document
 ```{r}
 library(tidyverse)
 library(modelr)
-library(patchwork)
 library(broom)
 #install.packages("olsrr")
 library(olsrr)
@@ -18,7 +17,7 @@ cdi = read.csv("./data/cdi.csv")
 
 ## Model selection
 
-Examining 7 candidate models using some measures of goodness, including Cp, AIC, BIC, adjusted R^2, partial F-test for nested models, and Cross-Validation.
+Examining 7 candidate models using some measures of goodness, including Cp, AIC, BIC, adjusted R^2, partial F-test for nested models, and bootstrap.
 
 ```{r}
 cdi = 
@@ -27,12 +26,12 @@ cdi =
     # crm_1000 is already generated in Xiao's part
     crm_1000 = crimes/pop * 1000,
     poparea = pop/area,
-    docs = (docs/pop) * 1000,
-    beds = (beds/pop) * 1000,
+    docs = docs/pop * 1000,
+    beds = beds/pop * 1000,
     # mutatation for the region needs to stay here (not in Xiao's part)
     region = as.factor(region)
   ) %>% 
-  select(-cty,-state,-crimes)
+  select(-id,-cty,-state,-crimes)
 ```
 
 
@@ -103,11 +102,12 @@ output_df_final = bind_cols(output_df, output) %>%
 
 output_df_final
 ```
-The optimal model is selected based on various criteria. We use 5 methods to compare different candidate models. The adjusted $R^2$ is an improved version of $R^2$, which only increases if the predictor is significant. In this case, it measures the percentage of change in crime rate per 1000 people that the predictors can explain collectively in a model. Higher adjusted $R^2$ value represents smaller difference between the observed and fitted value. Thus, based on the table, model 1, 4, and 7 have relatively highest $R^2$ values, but since model 1 is the full model, we choose to neglect it and focus on reduced models with similar strength instead. AIC and BIC are both information criteria which they penalize for complexity and reward for goodness of fit. Lower AIC/BIC values are preferred. Based on the table, model 4 and 7 have the lowest AIC and BIC values. Mallow's Cp compares the reduced model with the full model and measures the amount of error unexplained by the reduced model. Model with lower Cp or Cp close to the number of parameters is preferred. We can compare the number of parameters listed in the table with the Cp value for each model. Model 4 and 7 have the lowest Cp and the finding is consistent with other criteria. 
+The optimal model is selected based on various criteria. We use 5 methods to compare different candidate models. The adjusted $R^2$ is an improved version of $R^2$, which only increases if the predictor is significant. In this case, it measures the percentage of change in crime rate per 1000 people that the predictors can explain collectively in a model. Higher adjusted $R^2$ value represents smaller difference between the observed and fitted value. Thus, based on the table, model 1, 4, and 7 have relatively highest $R^2$ values, but since model 1 is the full model, we choose to neglect it and focus on reduced models with similar strength instead. AIC and BIC are both information criteria which they penalize for complexity and reward for goodness of fit. Lower AIC/BIC values are preferred. Based on the table, model 4 and 7 have the lowest AIC and BIC values. Mallow's Cp compares the reduced model with the full model and measures the amount of error unexplained by the reduced model. Model with lower Cp or Cp close to the number of parameters is preferred. We can compare the number of parameters listed in the table with the Cp value for each model. It is quite obvious to observe that Model 4 and 7 have the lowest Cp and the finding is consistent with other criteria. 
 
-The criterion above helped us to find two best candidate models, however, these measures are all internal, which only provide information of how well the model fits the training data. To evaluate the performance of the model, we choose to apply bootstrap resampling method to measure the accuracy. By evaluating the model on every randomly selected sample of the original dataset, we can get an averaged value of the standard error.
+The criterion above helped us to find two best candidate models, however, these measures are all internal, which only provide information of how well the model fits the training data. To evaluate the performance of the model, and since our models are fitted using the whole dataset, we choose to apply bootstrap resampling method to measure the accuracy. By evaluating the model on every randomly selected sample of the original dataset, we can get an averaged value of the standard error.
 
 ```{r}
+set.seed(1)
 # Define training control
 train.control <- trainControl(method = "boot", number = 1000)
 # Train the model
@@ -125,4 +125,4 @@ res = rbind(res_4,res_7) %>% relocate(Model) %>%
 
 res
 ```
-
+The 1000 bootstrapping samples of the original data provide us the estimated Root Mean Squared Error of the model, which measures the average prediction error made of the model in predicting the outcome and tell us how accurate the predictions are. In the table above, model 4 has a smaller RMSE value but the difference is rather small. However, since model 7 is purely based on stepwise selection, it only provides us as a guide of what a "good" model under automatic procedure looks like. Thus, based on the above observation, model 4 is considered as the optimal model for predicting the crime rate per 1000 people for each county for now.
