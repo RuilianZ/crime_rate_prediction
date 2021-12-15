@@ -9,12 +9,17 @@ output: html_document
 library(tidyverse)
 library(modelr)
 library(patchwork)
+library(MASS)
+library(ggplot2)
+library(leaps)
+library(performance)
 
-cdi = read.csv("./data/cdi.csv")
 ```
 
 ## import data
 ```{r}
+cdi = read.csv("./data/cdi.csv")
+
 cdi = 
   cdi %>% 
   mutate(
@@ -26,7 +31,7 @@ cdi =
     # mutatation for the region needs to stay here (not in Xiao's part)
     region = as.factor(region)
   ) %>% 
-  select(-id,-cty,-state,-crimes)
+  dplyr::select(-id,-cty,-state,-crimes)
 ```
 ### Model 1: Full model
 Let's first fit the model with all the predictors:
@@ -44,11 +49,11 @@ We can see that the variables `area`, `pop65`, `docs`, `bagrad`, `unemp` are all
 Then, plot a heatmap for the correlations among all the variables.
 
 ```{r}
-res = cor(cdi %>% select(-region))
+res = cor(cdi %>% dplyr::select(-region))
 round(res, 2) %>%
   knitr::kable()
 
-# plot the heatmap
+
 col <- colorRampPalette(c("blue", "white", "red"))(20)
 heatmap(x = res, col = col, symm = TRUE)
 ```
@@ -202,7 +207,7 @@ cv = crossv_mc(cdi, 100) %>%
     )
 
 cv %>% 
-  select(starts_with("rmse")) %>% 
+  dplyr::select(starts_with("rmse")) %>% 
   pivot_longer(
     everything(),
     names_to = "model",
@@ -267,7 +272,92 @@ plot(model7, which = 5)
 
 ## Box-Cox transformation
 
+```{r}
+boxcox(model2, lambda = seq(-3, 3, by = 0.25))
+boxcox(model3, lambda = seq(-3, 3, by = 0.25))
+boxcox(model4, lambda = seq(-3, 3, by = 0.25))
+boxcox(model5, lambda = seq(-3, 3, by = 0.25))
+boxcox(model6, lambda = seq(-3, 3, by = 0.25))
+boxcox(model7, lambda = seq(-3, 3, by = 0.25))
+```
+
+
+
 ## outliers
+
+6 and 215 are most obvious two
+```{r}
+sum_cdi = cdi
+summary(sum_cdi)
+```
+
+```{r}
+
+sum_cdi_df = sum_cdi[-c(6,215),]
+```
+for model 2
+```{r}
+old2 = lm(crm_1000 ~ pop18 + pcincome + hsgrad + pop65 + poverty + beds + poparea + region, data = cdi)
+new2 = lm(crm_1000 ~ pop18 + pcincome + hsgrad + pop65 + poverty + beds + poparea + region, data = sum_cdi_df)
+summary(old2); summary(new2)
+
+```
+for model 3
+```{r}
+old3 = lm(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region, data = cdi)
+new3 = lm(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region, data = sum_cdi_df)
+summary(old3); summary(new3)
+
+```
+for model 4
+```{r}
+old4 = lm(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region + poparea*region + poparea*poverty + poparea*beds, data = cdi)
+old4 = lm(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region + poparea*region + poparea*poverty + poparea*beds, data = sum_cdi_df)
+summary(old4); summary(new4)
+
+```
+for model 5
+```{r}
+old5 = lm(crm_1000 ~ pop18 + beds + hsgrad + poverty + unemp + pcincome + poparea, data = cdi)
+new5 = lm(crm_1000 ~ pop18 + beds + hsgrad + poverty + unemp + pcincome + poparea, data = sum_cdi_df)
+summary(old5); summary(new5)
+
+```
+for model 6
+```{r}
+old6 = lm(crm_1000 ~ pop18 + beds + poverty + unemp + pcincome + poparea, data = cdi)
+new6 = lm(crm_1000 ~ pop18 + beds + poverty + unemp + pcincome + poparea, data = sum_cdi_df)
+summary(old6); summary(new6)
+
+```
+for model 7
+```{r}
+old7 = lm(crm_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = cdi)
+new7 = lm(crm_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = sum_cdi_df)
+summary(old7); summary(new7)
+
+```
 
 
 ## colinearility
+
+```{r}
+cdi %>% 
+  dplyr::select(-crm_1000) %>% 
+  mutate(
+    region = factor(region)) %>%
+  ggcorr(label = TRUE, label_size = 2, hjust = 0.8)
+```
+pop and totalinc(1)
+pcincome and bagrad(0.7)
+hsgrad and bagrad(0.7)
+beds and docs(0.7)
+
+```{r}
+check_collinearity(model2)
+check_collinearity(model3)
+check_collinearity(model4)
+check_collinearity(model5)
+check_collinearity(model6)
+check_collinearity(model7)
+```
