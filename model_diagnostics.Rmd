@@ -224,68 +224,60 @@ residual vs fitted plot
 
 
 ```{r}
-par(mfrow = c(2,3))
+par(mfrow = c(1,2))
 
-plot(model2, which = 1)
-plot(model3, which = 1)
+
 plot(model4, which = 1)
-plot(model5, which = 1)
-plot(model6, which = 1)
 plot(model7, which = 1)
 ```
 
 QQ plot
 ```{r}
-par(mfrow = c(2,3))
+par(mfrow = c(1,2))
 
-plot(model2, which = 2)
-plot(model3, which = 2)
+
 plot(model4, which = 2)
-plot(model5, which = 2)
-plot(model6, which = 2)
 plot(model7, which = 2)
 ```
 
 Scale-Location
 ```{r}
-par(mfrow = c(2,3))
+par(mfrow = c(1,2))
 
-plot(model2, which = 3)
-plot(model3, which = 3)
+
 plot(model4, which = 3)
-plot(model5, which = 3)
-plot(model6, which = 3)
 plot(model7, which = 3)
 ```
 
 Residual
 ```{r}
-par(mfrow = c(2,3))
+par(mfrow = c(1,2))
 
-plot(model2, which = 5)
-plot(model3, which = 5)
+
 plot(model4, which = 5)
-plot(model5, which = 5)
-plot(model6, which = 5)
 plot(model7, which = 5)
 ```
 
 ## Box-Cox transformation
 
 ```{r}
-boxcox(model2, lambda = seq(-3, 3, by = 0.25))
-boxcox(model3, lambda = seq(-3, 3, by = 0.25))
-boxcox(model4, lambda = seq(-3, 3, by = 0.25))
-boxcox(model5, lambda = seq(-3, 3, by = 0.25))
-boxcox(model6, lambda = seq(-3, 3, by = 0.25))
-boxcox(model7, lambda = seq(-3, 3, by = 0.25))
+
+boxcox(model4, lambda = seq(-5, 5, by = 0.15))
+
+boxcox(model7, lambda = seq(-5, 5, by = 0.15))
 ```
+
 
 
 
 ## outliers
 
-6 and 215 are most obvious two
+```{r}
+par(mfrow = c(1,2))
+plot(model4, which = 6)
+plot(model7, which = 6)
+```
+
 ```{r}
 sum_cdi = cdi
 summary(sum_cdi)
@@ -293,51 +285,43 @@ summary(sum_cdi)
 
 ```{r}
 
-sum_cdi_df = sum_cdi[-c(6,215),]
+sum_cdi_4 = sum_cdi[-c(215,6),]
 ```
-for model 2
-```{r}
-old2 = lm(crm_1000 ~ pop18 + pcincome + hsgrad + pop65 + poverty + beds + poparea + region, data = cdi)
-new2 = lm(crm_1000 ~ pop18 + pcincome + hsgrad + pop65 + poverty + beds + poparea + region, data = sum_cdi_df)
-summary(old2); summary(new2)
 
-```
-for model 3
-```{r}
-old3 = lm(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region, data = cdi)
-new3 = lm(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region, data = sum_cdi_df)
-summary(old3); summary(new3)
 
-```
 for model 4
 ```{r}
 old4 = lm(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region + poparea*region + poparea*poverty + poparea*beds, data = cdi)
-new4 = lm(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region + poparea*region + poparea*poverty + poparea*beds, data = sum_cdi_df)
+new4 = lm(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region + poparea*region + poparea*poverty + poparea*beds, data = sum_cdi_4)
 summary(old4); summary(new4)
 
 ```
-for model 5
-```{r}
-old5 = lm(crm_1000 ~ pop18 + beds + hsgrad + poverty + unemp + pcincome + poparea, data = cdi)
-new5 = lm(crm_1000 ~ pop18 + beds + hsgrad + poverty + unemp + pcincome + poparea, data = sum_cdi_df)
-summary(old5); summary(new5)
 
-```
-for model 6
 ```{r}
-old6 = lm(crm_1000 ~ pop18 + beds + poverty + unemp + pcincome + poparea, data = cdi)
-new6 = lm(crm_1000 ~ pop18 + beds + poverty + unemp + pcincome + poparea, data = sum_cdi_df)
-summary(old6); summary(new6)
-
+par(mfrow = c(1,2))
+plot(old4, which = 2)
+plot(new4, which = 2)
 ```
+
+```{r}
+
+sum_cdi_7 = sum_cdi[-c(6,1),]
+```
+
+
 for model 7
 ```{r}
 old7 = lm(crm_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = cdi)
-new7 = lm(crm_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = sum_cdi_df)
+new7 = lm(crm_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = sum_cdi_7)
 summary(old7); summary(new7)
 
 ```
 
+```{r}
+par(mfrow = c(1,2))
+plot(old7, which = 2)
+plot(new7, which = 2)
+```
 
 ## colinearility
 
@@ -354,10 +338,15 @@ hsgrad and bagrad(0.7)
 beds and docs(0.7)
 
 ```{r}
-check_collinearity(model2)
-check_collinearity(model3)
-check_collinearity(model4)
-check_collinearity(model5)
-check_collinearity(model6)
+
+check_collinearity(model4) 
+
 check_collinearity(model7)
+
 ```
+
+```{r}
+par(mfrow = c(2,2))
+plot(model7)
+```
+
