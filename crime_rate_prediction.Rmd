@@ -1,0 +1,583 @@
+---
+title: "crime_rate_prediction"
+author: "Hao Zheng"
+date: "12/17/2021"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(readr)
+library(ggplot2) 
+#install.packages("ggExtra")
+library(ggExtra)
+#install.packages("GGally")
+library(GGally) 
+library(dplyr)
+library(skimr)
+library(modelr)
+library(patchwork)
+library(MASS)
+library(leaps)
+library(performance)
+library(broom)
+#install.packages("olsrr")
+library(olsrr)
+library(caret)
+```
+
+## Data Exploration
+### Import the data set 
+```{r}
+cdi = read_csv("./data/cdi.csv") %>%
+  janitor::clean_names() 
+
+# Create a new variable called crm_1000, which is the crime rate per 1000 population in each county in year 1990, and another variable poparea which is the population density per square mile. Also change the number of doctors and beds into doctors and beds per 1000 population.
+
+cdi = cdi %>% 
+  mutate(
+    poparea = pop/area,
+    crm_1000 = (crimes/pop)*1000,
+    docs = (docs/pop) * 1000,
+    beds = (beds/pop) * 1000
+  )
+```
+
+### To preview the data
+```{r}
+glimpse(cdi)
+summary(cdi)
+
+```
+
+## Draw pairwise plot to check association betwee every two variable
+```{r}
+ggpairs(cdi[,-c(1,2,3,10)])
+```
+
+From the pairwise plot, we observed the correlation and distribution between every two variables. The association between crime rate to each variable was displayed in the last row. No strong linear relationship was detected between the crime rate per 1000 person and other variables. Between variables, we noticed that Percent of population aged 18-34 have negative relation with Percent of population aged 65+. Although the high absolute value of correlation indicates a strong relationship, it may not be linear relation.
+
+### Take a look of variables with high correlations
+```{r}
+totalinc_pop = ggplot(cdi, aes(x = totalinc, y = pop)) +
+      geom_point() +
+      theme(legend.position = "none")
+ggMarginal(totalinc_pop, type = "density")
+
+
+#not ob linear
+pop18_pop65 = ggplot(cdi, aes(x = pop18, y = pop65)) + geom_point() +
+      theme(legend.position = "none")
+ggMarginal(pop18_pop65, type = "density")
+
+#not ob linear
+hsgrad_bagrad = ggplot(cdi, aes(x = hsgrad, y = bagrad)) + geom_point() +
+      theme(legend.position = "none")
+ggMarginal(hsgrad_bagrad , type = "density")
+
+
+
+hsgrad_poverty = ggplot(cdi, aes(x = hsgrad, y = poverty)) + geom_point() +
+      theme(legend.position = "none")
+ggMarginal(hsgrad_poverty, type = "density")
+
+
+
+hsgrad_unemp = ggplot(cdi, aes(x = hsgrad, y = unemp)) + geom_point() +
+      theme(legend.position = "none")
+ggMarginal(hsgrad_unemp , type = "density")
+
+
+hsgrad_pcincome = ggplot(cdi, aes(x = hsgrad, y = pcincome)) + geom_point() +
+      theme(legend.position = "none")
+ggMarginal(hsgrad_pcincome, type = "density")
+
+bagrad_pcincome = ggplot(cdi, aes(x = bagrad, y = pcincome)) + geom_point() +
+      theme(legend.position = "none")
+ggMarginal(bagrad_pcincome, type = "density")
+
+
+bagrad_unemp = ggplot(cdi, aes(x = bagrad, y = unemp)) + geom_point() +
+      theme(legend.position = "none")
+ggMarginal(bagrad_unemp, type = "density")
+
+
+bagrad_poverty = ggplot(cdi, aes(x = bagrad, y = poverty)) + geom_point() +
+      theme(legend.position = "none")
+ggMarginal(bagrad_poverty, type = "density")
+
+
+```
+
+
+### Crime Rate Comparison Across Region
+```{r}
+#CRM_1000 vs. Geographic Region
+cdi_region = cdi %>%
+  group_by(region) %>%
+  summarise(region_crm_1000 = sum(crimes)*1000/sum(pop)) %>%
+  arrange(desc(region_crm_1000))
+
+cdi_region = cdi_region %>%
+  mutate(region_cla = case_when(
+  region == 1 ~ "Northeast",
+  region == 2 ~ "North Central",
+  region == 3 ~ "South",
+  region == 4 ~ "West")) %>% 
+  mutate(region_cla = as.factor(region_cla)) %>% 
+  arrange(region_cla,region_crm_1000)
+
+ggplot(cdi_region) + 
+  geom_bar(stat = "identity",aes( y = region_crm_1000,reorder(region_cla,+region_crm_1000)),fill = "darkblue",width = 0.3) +
+  labs(x = "Region", y = "Crime Rate",title = "The Crime Rate of Each Geographic Region") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Southern US have highest crime rate. 
+
+### State crime( find the state with unusual crime rate)
+```{r}
+#CRM_1000 vs. state
+cdi_state = cdi %>%
+  group_by(state) %>%
+  summarise(state_crm_1000 = sum(crimes)*1000/sum(pop)) %>%
+  arrange(desc(state_crm_1000))
+
+theme_dotplot <- theme_bw(10) +
+    theme(axis.text.y = element_text(size = rel(0.75)),
+        axis.ticks.y = element_blank(),
+        axis.title.x = element_text(size = rel(0.75)),
+        panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_line(size = 0.5),
+        panel.grid.minor.x = element_blank())
+
+ggplot(cdi_state,aes(state_crm_1000,reorder(state,state_crm_1000))) +
+  geom_point(color = "blue") +
+  scale_x_continuous(limits = c(30, 110),breaks = seq(30,110,5)) + 
+  theme_dotplot +
+  labs(y = "State",title = 
+         "The Crime Rate with different States") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(cdi_state,aes(y = state_crm_1000)) + geom_boxplot()
+```
+
+According to the boxplot, there is no outliers, which means there is no states with unusual crime rate.
+```{r}
+cdi_desc = cdi %>%
+  arrange(desc(crm_1000))
+head(cdi_desc)
+ggplot(cdi_desc,aes(y = crm_1000)) + geom_boxplot()
+```
+
+There are four county with unusual crime rate, and they are (Kings, NY), (123 St._Loui, MO),(70, Fulton, GA), (9 Dade, FL)
+
+
+## Multiple Linear Regression Model Construction
+```{r}
+cdi = 
+  cdi %>% 
+  mutate(
+    region = as.factor(region)
+  ) %>% 
+  dplyr::select(-id,-cty,-state,-crimes)
+```
+
+### Model 1: Full model
+Let's first fit the model with all the predictors:
+```{r}
+model1 = lm(crm_1000 ~ ., data = cdi)
+
+broom::tidy(model1) %>% 
+  knitr::kable()
+```
+
+We can see that the variables `area`, `pop65`, `docs`, `bagrad`, `unemp` are all not very significant with a p-value larger than 0.05.
+
+
+### Model 2: Model found by looking at correlation clusters
+Then, plot a heatmap for the correlations among all the variables.
+
+```{r}
+res = cor(cdi %>% dplyr::select(-region))
+round(res, 2) %>%
+  knitr::kable()
+
+
+col <- colorRampPalette(c("blue", "white", "red"))(20)
+heatmap(x = res, col = col, symm = TRUE)
+```
+
+According to the clusters generated by R, we then choose variables that are not highly related with each other and are highly related to the outcome `crm_1000`.
+
+```{r}
+model2 = lm(crm_1000 ~ pop18 + pcincome + hsgrad + pop65 + poverty + beds + poparea + region, data = cdi)
+
+broom::tidy(model2) %>% 
+  knitr::kable()
+```
+
+
+### Model 3: Step-wise model based on model 2
+
+Conduct the automatic step-wise process on the predictors used in model 2.
+```{r}
+mult.fit = lm(crm_1000 ~ pop18 + pcincome + hsgrad + pop65 + poverty + beds + poparea + region, data = cdi)
+step(mult.fit, direction = "both")
+
+# Obtain a new model 3
+model3 = lm(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region, data = cdi)
+
+broom::tidy(model3) %>% 
+  knitr::kable()
+```
+
+Model 3 is rather good, and with a smaller number of predictors.
+
+Then we need to see the residual plot for model 3 in order to get some insight of some potential transformation.
+```{r}
+cdi %>% 
+  add_predictions(model3) %>% 
+  add_residuals(model3) %>% 
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point(alpha = 0.4) + 
+  geom_smooth(se = F, color = "red", method = "lm") +
+  labs(title = "Risidual Plot for model 3",
+       x = "Fitted Value", 
+       y = "Residual")
+```
+
+The residuals are randomly scattered so we may suppose that linearity has already been achieved.
+
+
+### Model 4: Try to add interaction terms in model 3
+
+We can then consider adding some potential interaction terms to model 3. So what interaction terms can we add?
+
+We suppose the terms that both have significant main effect on the outcomes may interact together on the outcomes, so we add the pairwise interactions of `poparea`, `poverty`, `region` and `beds` into model 3. Next, Apply step-wise process on it to come up with a new model.
+```{r}
+mult.fit = lm(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region + poparea*poverty + poparea*region + poverty*region + beds*poparea + beds*region + beds*poverty, data = cdi)
+step(mult.fit, direction = "both")
+
+model4 = lm(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region + poparea*region + poparea*poverty + poparea*beds, data = cdi)
+
+broom::tidy(model4) %>% 
+  knitr::kable()
+```
+
+
+### Model 5 & 6: Model based on internet searching result
+In addition, we can try to find other models based on the searching results of the potentially related factors of crime rates: age, medical resources, educational level, poverty, unemployment rate, personal income and population density per square mile.
+
+```{r}
+model5 = lm(crm_1000 ~ pop18 + beds + hsgrad + poverty + unemp + pcincome + poparea, data = cdi)
+
+broom::tidy(model5) %>% 
+  knitr::kable()
+```
+
+Then we use step-wise process based on the predictors used in model 5.
+
+```{r}
+mult.fit = lm(crm_1000 ~ pop18 + beds + hsgrad + poverty + unemp + pcincome + poparea, data = cdi)
+step(mult.fit, direction = "both")
+
+model6 = lm(crm_1000 ~ pop18 + beds + poverty + unemp + pcincome + poparea, data = cdi)
+
+broom::tidy(model6) %>% 
+  knitr::kable()
+```
+
+Draw the residual plots:
+```{r}
+res5 = 
+  cdi %>% 
+  add_predictions(model5) %>% 
+  add_residuals(model5) %>% 
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point(alpha = 0.4) + 
+  geom_smooth(se = F, color = "red", method = "lm") +
+  labs(title = "Risidual Plot for model 5",
+       x = "Fitted Value", 
+       y = "Residual")
+
+res6 = 
+  cdi %>% 
+  add_predictions(model6) %>% 
+  add_residuals(model6) %>% 
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point(alpha = 0.4) + 
+  geom_smooth(se = F, color = "red", method = "lm") +
+  labs(title = "Risidual Plot for model 6",
+       x = "Fitted Value", 
+       y = "Residual")
+
+res5 + res6
+```
+
+By the residual plot for the above two models, we cannot see a big difference.
+
+
+### Model 7: Step-wise model generated with all the variables
+
+```{r}
+# Use step-wise regression to try to find a mlr model
+mult.fit = lm(crm_1000 ~ ., data = cdi)
+step(mult.fit, direction = "both")
+```
+
+According the above results of step-wise regression in R, the predicting model of `crm_1000` contains the continuous predictors `pop`, `pop18`, `beds`, `hsgrad`, `bagrad`, `poverty`, `pcincome`, `totalinc`, `poparea` and the categorical predictor `region`.
+
+Then we fit the multiple linear regression model 7 for crime rates:
+```{r}
+model7 = lm(crm_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = cdi)
+
+broom::tidy(model7) %>% 
+  knitr::kable()
+```
+
+
+So we try to compare the models by ploting their RMSE values.
+```{r}
+# I've only chose model 3, 4, 7 here to compare their RMSE values
+cv = crossv_mc(cdi, 100) %>% 
+    mutate(
+    train = map(train, as_tibble),
+    test = map(test, as_tibble)
+  ) %>% 
+  mutate(
+    model_3 = map(train, ~lm(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region, data = cdi)),
+    model_4 = map(train, ~lm(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region + poparea*region + poparea*poverty + poparea*beds, data = cdi)),
+    model_7 = map(train, ~lm(crm_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = cdi))) %>% 
+  mutate(
+    rmse_model3 = map2_dbl(model_3, test, ~rmse(model = .x)),
+    rmse_model4 = map2_dbl(model_4, test, ~rmse(model = .x)),
+    rmse_model7 = map2_dbl(model_7, test, ~rmse(model = .x))
+    )
+
+cv %>% 
+  dplyr::select(starts_with("rmse")) %>% 
+  pivot_longer(
+    everything(),
+    names_to = "model",
+    values_to = "rmse",
+    names_prefix = "rmse_" 
+  ) %>% 
+  ggplot(aes(x = model, y = rmse)) +  geom_violin(fill = "orange",alpha = 0.4) +
+  geom_boxplot(alpha = 0.5, color = "red") 
+
+```
+
+
+
+## Model Selection
+
+Examining 7 candidate models using some measures of goodness, including Cp, AIC, BIC, adjusted R^2, partial F-test for nested models, and bootstrap.
+
+### Interaction
+
+Model 4 is the model with interaction terms after backward selection. The interaction terms include number of people per square mile with number of hospital beds per thousand people, number of people per square mile with percent of population with income below poverty level, and number of people per square mile with region. Since the difference between model 4 and model 3 is the added interaction terms, performing a partial F-test can verify whether the interaction terms significantly improve our model or not. If the p-value is less than $\alpha=0.05$, it indicates that the interaction terms do help to improve the model and we should include them.
+
+```{r}
+anova(model3, model4) %>% knitr::kable(caption = "ANOVA Table", digits = 3 )
+```
+
+Based on the ANOVA table, the p-value is extremely close to 0, indicating that the interaction terms should be preserved and model 4 is relatively better than model 3. However, results of comparisons based on other criteria will be considered as well.
+
+```{r}
+model_list = list(model1 = model1, model2 = model2, model3 = model3, model4 = model4, model5 = model5, model6 = model6, model7 = model7)
+
+output_list = lapply(model_list, glance)
+output_df = bind_rows(output_list) %>%
+  dplyr::select(adj.r.squared, AIC, BIC)
+
+#write a function to get Mallow's Cp for every model.
+Cp_func = function(x) {
+  Cp = ols_mallows_cp(x, model1)
+}
+
+Cp_val = map(model_list, Cp_func) %>% bind_rows() %>% 
+  pivot_longer(
+    1:7,
+    names_to = "Model",
+    names_prefix = "model",
+    values_to = "Cp"
+  ) %>% 
+  mutate(Model = if_else(Model == "1", gsub("1", "full model", Model), Model))
+
+#Get number of parameters
+output = vector(length = 7)
+for (i in 1:7) {
+  output[i] = length(coef(model_list[[i]]))
+}
+output = output %>% as_tibble() %>% rename(Num_Parameters = value)
+
+#Make Comparison Table
+output_df = bind_cols(output_df, Cp_val) %>% 
+  relocate(Model) %>% 
+  mutate(Cp = round(Cp, digits = 3)) %>% 
+  rename(Adj_R_Sq = adj.r.squared) %>% 
+  mutate(Adj_R_Sq = round(Adj_R_Sq, digits = 3))
+
+output_df_final = bind_cols(output_df, output) %>%
+  knitr::kable(col.names = c("Model", "Adjusted $R^2$", "AIC", "BIC", "Cp", "Number of Parameters"), captions = "Model Comparison Table")
+
+output_df_final
+```
+
+The optimal model is selected based on various criteria. We use 5 methods to compare different candidate models. The adjusted $R^2$ is an improved version of $R^2$, which only increases if the predictor is significant. In this case, it measures the percentage of change in crime rate per 1000 people that the predictors can explain collectively in a model. Higher adjusted $R^2$ value represents smaller difference between the observed and fitted value. Thus, based on the table, model 1, 4, and 7 have relatively highest $R^2$ values, but since model 1 is the full model, we choose to neglect it and focus on reduced models with similar strength instead. AIC and BIC are both information criteria which they penalize for complexity and reward for goodness of fit. Lower AIC/BIC values are preferred. Based on the table, model 4 and 7 have the lowest AIC and BIC values. Mallow's Cp compares the reduced model with the full model and measures the amount of error unexplained by the reduced model. Model with lower Cp or Cp close to the number of parameters is preferred. We can compare the number of parameters listed in the table with the Cp value for each model. It is quite obvious to observe that Model 4 and 7 have the lowest Cp and the finding is consistent with other criteria. 
+
+The criterion above helped us to find two best candidate models, however, these measures are all internal, which only provide information of how well the model fits the training data. To evaluate the performance of the model, and since our models are fitted using the whole dataset, we choose to apply bootstrap resampling method to measure the accuracy. By evaluating the model on every randomly selected sample of the original dataset, we can get an averaged value of the standard error.
+
+```{r}
+set.seed(1)
+# Define training control
+train.control <- trainControl(method = "boot", number = 1000)
+# Train the model
+boot_model7 = train(crm_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = cdi, method = "lm", trControl = train.control)
+
+boot_model4 = train(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region + poparea*region + poparea*poverty + poparea*beds, data = cdi, method = "lm", trControl = train.control)
+# Summarize the results
+res_4 = boot_model4$results %>% as_tibble() %>% dplyr::select(RMSE) %>% mutate(Model = "Model4")
+
+res_7 = boot_model7$results %>% as_tibble() %>% dplyr::select(RMSE) %>% 
+  mutate(Model = "Model7")
+
+res = rbind(res_4,res_7) %>% relocate(Model) %>% 
+  knitr::kable(caption = "RMSE Table", col.names = c("Model", "RMSE"))
+
+res
+```
+
+The 1000 bootstrapping samples of the original data provide us the estimated Root Mean Squared Error of the model, which measures the average prediction error made of the model in predicting the outcome and tell us how accurate the predictions are. In the table above, model 4 has a smaller RMSE value but the difference is rather small. However, since model 7 is purely based on stepwise selection, it only provides us as a guide of what a "good" model under automatic procedure looks like. Thus, based on the above observation, model 4 is considered as the optimal model for predicting the crime rate per 1000 people for each county for now.
+
+
+
+## Model Diagnostics
+
+residual vs fitted plot
+
+```{r}
+par(mfrow = c(1,2))
+
+
+plot(model4, which = 1)
+plot(model7, which = 1)
+```
+
+QQ plot
+```{r}
+par(mfrow = c(1,2))
+
+
+plot(model4, which = 2)
+plot(model7, which = 2)
+```
+
+Scale-Location
+```{r}
+par(mfrow = c(1,2))
+
+
+plot(model4, which = 3)
+plot(model7, which = 3)
+```
+
+Residual
+```{r}
+par(mfrow = c(1,2))
+
+
+plot(model4, which = 5)
+plot(model7, which = 5)
+```
+
+### Box-Cox transformation
+
+```{r}
+
+boxcox(model4, lambda = seq(-5, 5, by = 0.15))
+
+boxcox(model7, lambda = seq(-5, 5, by = 0.15))
+```
+
+
+### outliers
+
+```{r}
+par(mfrow = c(1,2))
+plot(model4, which = 6)
+plot(model7, which = 6)
+```
+
+```{r}
+sum_cdi = cdi
+summary(sum_cdi)
+```
+
+```{r}
+
+sum_cdi_4 = sum_cdi[-c(215,6),]
+```
+
+
+for model 4
+```{r}
+old4 = lm(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region + poparea*region + poparea*poverty + poparea*beds, data = cdi)
+new4 = lm(crm_1000 ~ pop18 + pcincome + poverty + beds + poparea + region + poparea*region + poparea*poverty + poparea*beds, data = sum_cdi_4)
+summary(old4); summary(new4)
+
+```
+
+```{r}
+par(mfrow = c(1,2))
+plot(old4, which = 2)
+plot(new4, which = 2)
+```
+
+```{r}
+
+sum_cdi_7 = sum_cdi[-c(6,1),]
+```
+
+
+for model 7
+```{r}
+old7 = lm(crm_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = cdi)
+new7 = lm(crm_1000 ~ pop + pop18 + beds + hsgrad + bagrad + poverty + pcincome + totalinc + poparea + region, data = sum_cdi_7)
+summary(old7); summary(new7)
+
+```
+
+```{r}
+par(mfrow = c(1,2))
+plot(old7, which = 2)
+plot(new7, which = 2)
+```
+
+### colinearility
+
+```{r}
+cdi %>% 
+  dplyr::select(-crm_1000) %>% 
+  mutate(
+    region = factor(region)) %>%
+  GGally::ggcorr(label = TRUE, label_size = 2, hjust = 0.8)
+```
+pop and totalinc(1)
+pcincome and bagrad(0.7)
+hsgrad and bagrad(0.7)
+beds and docs(0.7)
+
+```{r}
+
+check_collinearity(model4) 
+
+check_collinearity(model7)
+
+```
+
+```{r}
+par(mfrow = c(2,2))
+plot(model7)
+```
