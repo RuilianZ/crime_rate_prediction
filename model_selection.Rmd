@@ -4,22 +4,21 @@ author: "Peilin Zhou"
 output: github_document
 ---
 
-```{r}
+```{r, include=FALSE}
 library(tidyverse)
 library(modelr)
 library(broom)
 #install.packages("olsrr")
 library(olsrr)
 library(caret)
-
-cdi = read.csv("./data/cdi.csv")
 ```
 
 ## Model selection
 
 Examining 7 candidate models using some measures of goodness, including Cp, AIC, BIC, adjusted R^2, partial F-test for nested models, and bootstrap.
 
-```{r}
+```{r, message=FALSE}
+cdi = read.csv("./data/cdi.csv")
 cdi = 
   cdi %>% 
   mutate(
@@ -81,7 +80,8 @@ Cp_val = map(model_list, Cp_func) %>% bind_rows() %>%
     names_to = "Model",
     names_prefix = "model",
     values_to = "Cp"
-  )
+  ) %>% 
+  mutate(Model = if_else(Model == "1", gsub("1", "full model", Model), Model))
 
 #Get number of parameters
 output = vector(length = 7)

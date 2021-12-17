@@ -2,62 +2,6 @@ Model Selection
 ================
 Peilin Zhou
 
-``` r
-library(tidyverse)
-```
-
-    ## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.1 ──
-
-    ## ✓ ggplot2 3.3.5     ✓ purrr   0.3.4
-    ## ✓ tibble  3.1.4     ✓ dplyr   1.0.7
-    ## ✓ tidyr   1.1.3     ✓ stringr 1.4.0
-    ## ✓ readr   2.0.1     ✓ forcats 0.5.1
-
-    ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
-    ## x dplyr::filter() masks stats::filter()
-    ## x dplyr::lag()    masks stats::lag()
-
-``` r
-library(modelr)
-library(broom)
-```
-
-    ## 
-    ## Attaching package: 'broom'
-
-    ## The following object is masked from 'package:modelr':
-    ## 
-    ##     bootstrap
-
-``` r
-#install.packages("olsrr")
-library(olsrr)
-```
-
-    ## 
-    ## Attaching package: 'olsrr'
-
-    ## The following object is masked from 'package:datasets':
-    ## 
-    ##     rivers
-
-``` r
-library(caret)
-```
-
-    ## Loading required package: lattice
-
-    ## 
-    ## Attaching package: 'caret'
-
-    ## The following object is masked from 'package:purrr':
-    ## 
-    ##     lift
-
-``` r
-cdi = read.csv("./data/cdi.csv")
-```
-
 ## Model selection
 
 Examining 7 candidate models using some measures of goodness, including
@@ -65,6 +9,7 @@ Cp, AIC, BIC, adjusted R^2, partial F-test for nested models, and
 bootstrap.
 
 ``` r
+cdi = read.csv("./data/cdi.csv")
 cdi = 
   cdi %>% 
   mutate(
@@ -145,7 +90,8 @@ Cp_val = map(model_list, Cp_func) %>% bind_rows() %>%
     names_to = "Model",
     names_prefix = "model",
     values_to = "Cp"
-  )
+  ) %>% 
+  mutate(Model = if_else(Model == "1", gsub("1", "full model", Model), Model))
 
 #Get number of parameters
 output = vector(length = 7)
@@ -167,15 +113,15 @@ output_df_final = bind_cols(output_df, output) %>%
 output_df_final
 ```
 
-| Model | Adjusted *R*<sup>2</sup> |      AIC |      BIC |      Cp | Number of Parameters |
-|:------|-------------------------:|---------:|---------:|--------:|---------------------:|
-| 1     |                    0.608 | 3766.076 | 3839.638 |  13.000 |                   17 |
-| 2     |                    0.561 | 3810.282 | 3859.323 |  58.637 |                   11 |
-| 3     |                    0.562 | 3806.952 | 3847.820 |  55.370 |                    9 |
-| 4     |                    0.606 | 3765.798 | 3827.100 |   8.537 |                   14 |
-| 5     |                    0.445 | 3910.270 | 3947.051 | 187.549 |                    8 |
-| 6     |                    0.444 | 3910.173 | 3942.868 | 188.200 |                    7 |
-| 7     |                    0.611 | 3759.247 | 3816.462 |   6.128 |                   13 |
+| Model      | Adjusted *R*<sup>2</sup> |      AIC |      BIC |      Cp | Number of Parameters |
+|:-----------|-------------------------:|---------:|---------:|--------:|---------------------:|
+| full model |                    0.608 | 3766.076 | 3839.638 |  13.000 |                   17 |
+| 2          |                    0.561 | 3810.282 | 3859.323 |  58.637 |                   11 |
+| 3          |                    0.562 | 3806.952 | 3847.820 |  55.370 |                    9 |
+| 4          |                    0.606 | 3765.798 | 3827.100 |   8.537 |                   14 |
+| 5          |                    0.445 | 3910.270 | 3947.051 | 187.549 |                    8 |
+| 6          |                    0.444 | 3910.173 | 3942.868 | 188.200 |                    7 |
+| 7          |                    0.611 | 3759.247 | 3816.462 |   6.128 |                   13 |
 
 The optimal model is selected based on various criteria. We use 5
 methods to compare different candidate models. The adjusted
